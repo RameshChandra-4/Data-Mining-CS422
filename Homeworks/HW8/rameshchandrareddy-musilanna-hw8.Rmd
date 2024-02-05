@@ -1,0 +1,223 @@
+---
+title: "CS 422 HW8"
+author: "Ramesh Chandra Reddy Musilanna"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_float: yes
+---
+
+## 2.    Programming Problem
+### 2.1. K-means clustering
+
+```{r}
+library("factoextra")
+library("ggplot2")
+library("dplyr")
+library("cluster")
+library("fpc")
+library("dbscan")
+```
+
+
+```{r}
+file19.df <- read.csv("file19.csv", header = TRUE, sep = ",")
+head(file19.df)
+```
+
+### 2.1.a.i
+```{r}
+
+summary(file19.df)
+apply(file19.df,2,sd)
+```
+
+<p> By observing Summary and Standard deviation, Name attribute can be omitted from the data set </p>
+
+```{r}
+file19_n.df <- file19.df[-1]
+head(file19_n.df)
+```
+
+### 2.1.a.ii
+
+<p> From summary we can see that mean of any feature is not zero, thus the data is not standardized.</p>
+
+
+###2.1.a.iii
+
+```{r}
+
+clean.df <- function(txt,out) {
+ file19.txt.df <- read.csv(file= txt,
+                           header = FALSE,
+                           sep = "",
+                           dec = ".",
+                           comment.char = "#"
+                           
+                           )
+ 
+  write.csv(file19.txt.df, file = out)
+  file19.txt.df <- read.csv(file= out,
+                           header = TRUE,
+                           sep = ",",
+                           dec = ".",
+                           comment.char = "#",
+                         skip = 4
+                           )
+  write.csv(file19.txt.df[,1:10], file = out,row.names = F)
+  file19.txt.df <- read.csv(out,row.names = 1)
+  row.names(file19.txt.df) <- NULL
+    return( file19.txt.df)
+}
+file19_n.df <- clean.df(txt = "file19.txt", out = "file19.csv")
+file19_n.df
+
+```
+
+### 2.1.b
+
+####2.1.b.i
+
+
+```{r}
+file19_n.df <- file19_n.df[-1]
+
+scale.df <-scale(file19_n.df)
+fviz_nbclust(scale.df, kmeans, method="wss")
+fviz_nbclust(scale.df, kmeans, method="silhouette")
+```
+<p> After observing WSS and Silhouette graphs, 8 seems ideal number of clusters.</p>
+
+#### 2.1.b.ii
+
+```{r}
+
+k_means <- kmeans(scale.df, centers=8, nstart=25)
+#k
+fviz_cluster(k_means, data=scale.df)
+```
+
+#### 2.1.b.iii
+
+```{r}
+observations.in.each.clster <-as.data.frame(table(k_means$cluster))
+names(observations.in.each.clster) <-c("Cluster","Observations")
+print(observations.in.each.clster)
+
+```
+
+
+#### 2.1.b.iv
+
+```{r}
+
+print(paste("Total SSE of the clusters :", signif(k_means$tot.withinss, 5)))
+
+```
+
+#### 2.1.b.v
+
+```{r}
+
+sse.each.cluster <-c()
+for (x in 1:max(k_means$cluster)){
+  sse.each.cluster <-rbind(sse.each.cluster,c(x,k_means$withinss[x]))}
+colnames(sse.each.cluster) <- c("Cluster", "SSE")
+print(sse.each.cluster)
+
+```
+
+#### 2.1.b.vi
+
+
+```{r}
+
+x<-1
+while(x<9){
+  print(paste0("Group Number ", x, " : ", paste(unlist(file19.df[which(k_means$cluster==x),][1], use.names=FALSE), collapse=", ")))
+  x<-x+1
+  
+} 
+
+```
+
+<p> By observing Total SSE: 52.305, is not so bad, within each cluster SSE metrics shows that its a good clustering performance, lastly by observing Groups animals like rats,bats and squirrels are formed into their own group. <p>
+
+
+### 2.2 DBSCAN clustering
+
+#### 2.2.a
+
+
+```{r}
+
+s1.df <- read.csv("s1.csv")
+dim(s1.df)
+summary(s1.df)
+```
+
+<p> I think we need to standardize the data, by observing summary difference between min and max values of both attributes is huge. without standardization DBSCAN clustering Algo takes more time to converge </p>
+
+#### 2.2.b.i
+
+```{r}
+
+plot(s1.df)
+
+```
+
+#### 2.2.b.ii
+
+<p> As per the plot we can see that 15 clusters are formed, in which 11 clusters are well separated and the remaining 4 are on top right corner of the plot </p>
+
+#### 2.2.c.i
+
+```{r}
+scaled.s1.df <- scale(s1.df)
+fviz_nbclust(scaled.s1.df, kmeans, method="wss")
+```
+#### 2.2.b.ii
+
+```{r}
+fviz_nbclust(scaled.s1.df, kmeans, method="silhouette")
+```
+
+
+#### 2.2.c.iii
+
+<p> After taking both the WSS and Silhouette graphs into account, 9 would be a good number for clustering.</p>
+
+#### 2.2.d.i
+
+```{r}
+
+k_means <- kmeans(scaled.s1.df, centers=9, nstart=55)
+#k_means
+
+```
+
+```{r}
+
+fviz_cluster(k_means, data=scaled.s1.df)
+```
+
+
+#### 2.2.d.ii
+
+<p>The K-Means clustering algorithm has clustered, 2 nearest high density clusters have merged into one, which is different for top right light blue cluster and left bottom light green cluster. </p>
+
+#### 2.2.e.i
+
+<p>Even though the data set has 2 features, MinPts as 6 will be an ideal parameter for to spread of points on the edges of some clusters.</p>
+
+#### 2.2.e.ii
+
+
+
+
+
+

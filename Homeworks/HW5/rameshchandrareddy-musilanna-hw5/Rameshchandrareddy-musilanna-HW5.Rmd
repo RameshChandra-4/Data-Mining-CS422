@@ -1,0 +1,161 @@
+---
+title: "CS 422 HW5"
+author: "Ramesh Chandra Reddy Musilanna"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_float: yes
+---
+
+## 2. Practicum Problems
+
+### 2.1. Association Rules
+
+#### Part 2.1.a
+```{r}
+library(arules)
+products.df <- read.csv("products.csv", header = FALSE)
+```
+
+#### Part 2.1.b
+
+```{r}
+tr1k.df <- read.transactions("tr-1k-canonical.csv",format = 'basket', header = FALSE, sep = ',')
+tr5k.df <- read.transactions("tr-5k-canonical.csv",format = 'basket', header = FALSE, sep = ',')
+tr20k.df <- read.transactions("tr-20k-canonical.csv",format = 'basket', header = FALSE, sep = ',')
+tr75k.df <- read.transactions("tr-75k-canonical.csv",format = 'basket', header = FALSE, sep = ',')
+```
+
+```{r}
+
+itemFrequencyPlot(tr1k.df, support = 0.080)
+image(tr1k.df)
+```
+
+```{r}
+Freq_1k <- apriori(tr1k.df, parameter=list(support=0.01, target="frequent itemsets"))
+inspect(head(Freq_1k, by="support", 10))
+```
+
+<p>
+After testing with various minconf values, I found that greatest support value for an itemset is 0.108
+</p>
+ 
+```{r}
+rules_1k <- apriori(tr1k.df, parameter=list(support=0.01, confidence = 0.99, target="rules"))
+inspect(head(rules_1k, by="lift", 10))
+```
+
+<p>
+One of the rule from above dataset based on high lift value is that customers who bought Walnut Cookie and Vanilla Frappuccino have likely chance to buy Chocolate Tart.
+</p>
+  
+```{r}
+itemFrequencyPlot(tr5k.df, support = 0.080)
+image(tr1k.df)
+```
+  
+```{r}
+Freq_5k <- apriori(tr5k.df, parameter=list(support=0.01, target="frequent itemsets"))
+inspect(head(Freq_5k, by="support", 10))
+```
+
+In the Dataset with 5000 rows Coffee Eclair topped with higher support values
+
+```{r}
+rules_5k <- apriori(tr5k.df, parameter=list(support=0.01, confidence = 0.99, target="rules"))
+inspect(head(rules_5k, by="lift", 10))
+```
+
+<p>
+One of the rule from above dataset based on high lift values is that customers who bought Green tea, Lemon lemonade and Raspberry Lemonade have chance to buy Raspberry cookie or lemon cookie
+</p>
+  
+```{r}
+itemFrequencyPlot(tr20k.df, support = 0.080)
+image(tr20k.df)
+```
+
+ 
+  
+```{r}
+Freq_20k <- apriori(tr20k.df, parameter=list(support=0.01, target="frequent itemsets"))
+inspect(head(Freq_20k, by="support", 10))
+```
+
+ 
+  
+<p>
+Coffee Eclair still topped in 20K transaction dataset.
+</p>
+  
+   
+  
+```{r}
+rules_20k <- apriori(tr20k.df, parameter=list(support=0.01, confidence = 0.99, target="rules"))
+inspect(head(rules_20k, by="lift", 10))
+```
+
+ 
+  
+<p>
+Some of the rules from above dataset based on high lift values is that customers who bought Green tea, Lemon lemonade and Raspberry Lemonade have chance to buy Raspberry cookie or lemon cookie and other is Customers who bought Apple Croissant, Apple Tart and Cherry Soda are likely to buy Apple Danish.
+</p>
+  
+   
+  
+```{r}
+itemFrequencyPlot(tr75k.df, support = 0.080)
+image(tr75k.df)
+```
+
+ 
+  
+```{r}
+Freq_75k <- apriori(tr75k.df, parameter=list(support=0.01, target="frequent itemsets"))
+inspect(head(Freq_75k, by="support", 10))
+```
+
+ <p>
+Coffee Eclair still topped in 75K transaction dataset aswell.
+</p>
+  
+
+   
+  
+```{r}
+rules_75k <- apriori(tr75k.df, parameter=list(support=0.01, confidence = 0.99, target="rules"))
+inspect(head(rules_75k, by="lift", 10))
+```
+
+ 
+<p>
+Some of the rules from above dataset based on high lift values is that customers who bought Green tea, Lemon lemonade and Raspberry Lemonade have chance to buy Raspberry cookie or lemon cookie and other is Customers who bought Apple Croissant, Apple Tart and Cherry Soda are likely to buy Apple Danish.
+</p>
+
+#### Part 2.1.c
+<p>
+Data sets with 5k, 20k, 75k are more generalized than 1k data set. 
+by observing items that are apple flavored. we can see that with addition of more transactions rules seems to be robust and generalized.
+</p>
+
+
+#### Part 2.1.d.i
+```{r}
+inspect(head(Freq_75k, by="support", 10))
+```
+<p>
+Most frequently bought item is Coffee Eclair
+</p>
+
+#### Part 2.1.d.ii
+```{r}
+q <- sort(Freq_75k)
+inspect(tail(q))
+```
+<p>
+Least Frequent bought item set is Apple Croissant, Apple Danish, Apple Tart, Cherry Soda.
+</p>

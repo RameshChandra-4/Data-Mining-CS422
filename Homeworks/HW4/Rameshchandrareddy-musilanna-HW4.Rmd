@@ -1,0 +1,211 @@
+---
+title: "CS 422 HW4"
+author: "Ramesh Chandra Reddy Musilanna"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_float: yes
+---
+## Practicum problem
+### 2.1 Decision Tree Classification.
+
+```{r}
+library("rpart")
+library("rpart.plot")
+library(dplyr)
+library(yardstick)
+library(caret)
+library(ROCR)
+adult_train.df <- read.csv("adult-train.csv")
+adult_test.df <- read.csv("adult-test.csv")
+```
+
+### Part 2.1.a
+
+
+```{r}
+#head(adult_train.df)
+#head(adult_test.df )
+```
+
+```{r}
+sum(apply(adult_train.df, 1, function(r) any(r %in% "?")))
+```
+```{r}
+sum(apply(adult_test.df , 1, function(r) any(r %in% "?")))
+```
+
+```{r}
+adult_train.df <- adult_train.df[which(!apply(adult_train.df, 1, function(r) any(r %in% "?"))),]
+adult_test.df  <- adult_test.df [which(!apply(adult_test.df , 1, function(r) any(r %in% "?"))),]
+```
+```{r}
+dim(adult_train.df)
+```
+```{r}
+dim(adult_test.df)
+```
+
+### Part 2.1.b
+
+```{r}
+set.seed(1122)
+train_tree <- rpart(income ~ ., data = adult_train.df, method = "class")
+?rpart.plot
+rpart.plot(train_tree, type = 4, main = "Adult_train Dataset Decision Tree")
+```
+
+#### Part 2.1.b.i
+
+```{r}
+summary(train_tree)
+```
+<p>The top three predictors are capital_gain,relationship,marital_status</p>
+
+
+#### Part 2.1.b.ii
+
+<p>The first split is done on relationship. The predicted class of the root node is <=50K. 22,653 observations belong to class <=50 and 7,508 belong to '>50'</p>
+
+### Part 2.1.c
+
+```{r}
+pred.tree <- predict(train_tree, newdata = adult_test.df , type="class", interval="confidence")
+confusion.matrix <- confusionMatrix(pred.tree, as.factor(adult_test.df [, 15]))
+confusion.matrix
+```
+
+#### Part 2.1.c.i
+
+```{r}
+balanced_accuracy <- confusion.matrix[["byClass"]][["Balanced Accuracy"]]
+paste0("Balanced Accuracy = ", signif(balanced_accuracy, 3))
+```
+#### Part 2.1.c.ii
+
+```{r}
+balanced_error_rate <- 1 - balanced_accuracy
+paste0("Balanced Error Rate = ", signif(balanced_error_rate, 3))
+```
+#### Part 2.1.c.iii
+
+```{r}
+sensitivity <- 0.9482
+paste0("Sensitivity = ", signif(confusion.matrix[["byClass"]][["Sensitivity"]], 3))
+```
+```{r}
+paste0("Specificity = ", signif(confusion.matrix[["byClass"]][["Specificity"]], 3))
+```
+
+#### Part 2.1.c.iv
+```{r}
+prediction.rocr <- predict(train_tree, newdata = adult_test.df , type = "prob")[,2]
+f.prediction <- prediction(prediction.rocr, adult_test.df $income)
+f.preformance <- performance(f.prediction, "tpr", "fpr")
+plot(f.preformance, colorize=T, lwd=3)
+abline(0, 1)
+```
+
+```{r}
+?performance
+auc <- performance(f.pred, measure="auc")
+paste0("Area under the curve of the ROC curve = ", signif(auc@y.values[[1]], 3))
+```
+
+### Part 2.1.d
+```{r}
+printcp(train_tree)
+```
+
+<p>The tree doesn't need to be pruned because the model is not complex which may be over fitting to the data. The model is giving out a decent balanced accuracy score. So, pruning the tree will harm its effectiveness.</p>
+
+### Part 2.1.e
+#### Part 2.1.e.i
+
+
+```{r}
+table(adult_train.df[,'income'])
+
+```
+
+<p>22,653 observations belong to class <=50, and 7,508 belong to '>50'</p>
+
+
+#### Part 2.1.e.ii
+
+```{r}
+set.seed(1122)
+index <- sample(which(adult_train.df[, 'income'] == '<=50K'), length(which(adult_train.df[, 'income'] == '>50K')))
+new_train.df <- adult_train.df[index,]
+new_train.df
+```
+```{r}
+
+new_train.df <- rbind(new_train.df, adult_train.df[which(adult_train.df[,'income'] == '>50K'),])
+dim(new_train.df)
+```
+#### Part 2.1.e.iii
+
+```{r}
+
+new_train_tree <- rpart(income ~ ., data = new_train.df, method = "class")
+
+rpart.plot(new_train_tree,type = 4, main = "New Training Dataset Decision Tree")
+
+
+```
+
+##### Part 2.1.e.iii.i
+
+```{r}
+pred.new_train_tree <- predict(new_train_tree, newdata = adult_test.df , type="class", interval="confidence")
+confusion.matrix_new_train <- confusionMatrix(pred.new_train_tree, as.factor(adult_test.df [, 15]))
+confusion.matrix_new_train
+```
+```{r}
+balancedAccuracy_new_train <- confusion.matrix_new_train[["byClass"]][["Balanced Accuracy"]]
+paste0("Balanced Accuracy = ", signif(balancedAccuracy_new_train, 3))
+```
+
+
+##### Part 2.1.e.iii.ii
+
+
+```{r}
+balanced_error_rate_new_train <- 1 - balancedAccuracy_new_train
+paste0("Balanced Error Rate = ", signif(balanced_error_rate_new_train, 3))
+```
+
+
+##### Part 2.1.e.iii.iii
+
+```{r}
+paste0("Sensitivity = ", signif(confusion.matrix_new_train[["byClass"]][["Sensitivity"]], 3))
+```
+```{r}
+paste0("Specificity = ", signif(confusion.matrix_new_train[["byClass"]][["Specificity"]], 3))
+```
+
+
+##### Part 2.1.e.iii.iv
+
+
+```{r}
+pre.rocr2 <- predict(new_train_tree, newdata = adult_test.df , type = "prob")[,2]
+f.pre2 <- prediction(pre.rocr2, adult_test.df $income)
+f.pref2 <- performance(f.pre2, "tpr", "fpr")
+plot(f.pref2, colorize=T, lwd=3)
+abline(0, 1)
+```
+
+```{r}
+auc2 <- performance(f.pre2, measure="auc")
+paste0("Area under the curve of the ROC curve = ", signif(auc2@y.values[[1]], 3))
+```
+
+### Part 2.1.f
+
+<p> Balanced Accuracy, Specificity and Positive Predictive Value significantly higher in (e), Sensitivity significantly higher in (c), and AUC in (e) slightly overcomes the AUC in (c).</p>

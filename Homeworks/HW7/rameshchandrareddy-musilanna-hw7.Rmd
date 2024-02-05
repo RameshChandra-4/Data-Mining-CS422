@@ -1,0 +1,196 @@
+---
+title: "CS 422 HW7"
+author: "Ramesh Chandra Reddy Musilanna"
+output:
+  html_document:
+    df_print: paged
+  toc: yes
+  html_notebook: null
+toc_float: yes
+---
+
+## 2. Practicum Problems
+### 2.1 Feed Forward Neural Networks
+
+```{r}
+
+
+library(keras)
+library(dplyr)
+library(caret)
+library(rpart)
+
+
+rm(list=ls())
+
+# Set working directory as needed
+df <- read.csv("wifi_localization.csv")
+
+set.seed(1122)
+df <- df[sample(nrow(df)), ]
+indx <- sample(1:nrow(df), 0.20*nrow(df))
+test.df  <- df[indx, ]
+train.df <- df[-indx, ]
+```
+
+
+```{r}
+x.train.df <- select(train.df, -room)
+x.test.df <- select(test.df, -room)
+
+# x.train.df
+# x.test.df
+```
+
+```{r}
+y.train.df <- train.df$room
+y.train.df.ohe <- to_categorical(y.train.df)
+# y.train.df
+# y.train.df.ohe
+y.test.df <- test.df$room
+y.test.df.ohe <- to_categorical(y.test.df)
+# y.test.df
+# y.test.df.ohe
+```
+
+```{r}
+# head( y.train.df.ohe)
+```
+
+```{r}
+# head(x.train.df)
+
+```
+```{r}
+model <- keras_model_sequential() %>%
+  layer_dense(units =9, activation="relu", input_shape=c(7)) %>%
+  layer_dense(units = 5, activation="softmax")
+model
+model %>% compile(loss = "categorical_crossentropy",
+          optimizer="adam",
+          metrics=c("accuracy"))
+
+model %>% fit(
+    data.matrix(x.train.df),
+    y.train.df.ohe,
+    epochs =100,
+    batch_size=32,
+    validation_split=0.20)
+
+c(loss,accuracy) %<-% (model %>% evaluate(as.matrix(x.test.df), y.test.df.ohe))
+```
+
+### 2.1.a
+```{r}
+pred.prob <- predict(model, as.matrix(x.test.df))
+
+pred.class <- apply(pred.prob, 1, function(x) which.max(x)-1)
+
+confusion.matrix <- confusionMatrix(as.factor(pred.class), as.factor(y.test.df))
+confusion.matrix
+```
+### 2.1.b
+```{r}
+model1 <- keras_model_sequential() %>%
+  layer_dense(units =9, activation="relu", input_shape=c(7)) %>%
+  layer_dense(units =9, activation="relu") %>%
+  layer_dense(units = 5, activation="softmax")
+model1
+model1 %>% compile(loss = "categorical_crossentropy",
+          optimizer="adam",
+          metrics=c("accuracy"))
+model1 %>% fit(
+    data.matrix(x.train.df),
+    y.train.df.ohe,
+    epochs =100,
+    batch_size=32,
+    validation_split=0.20)
+
+c(loss,accuracy) %<-% (model1 %>% evaluate(as.matrix(x.test.df), y.test.df.ohe))
+```
+#### 2.1.b.i
+```{r}
+pred.prob <- predict(model1, as.matrix(x.test.df))
+# pred.prob
+pred.class <- apply(pred.prob, 1, function(x) which.max(x)-1)
+# pred.class
+confusion.matrix <- confusionMatrix(as.factor(pred.class), as.factor(y.test.df))
+# confusion.matrix
+```
+<p> For one neuron in hidden layer, loss: 0.057, Accuracy:0.980 </p>
+
+#### 2.1.b.ii
+
+####2.1.b.iii
+
+#### 2.1.b.iv
+<p> No, By increasing no of epochs to 200 wont change the results, As the accuracy is stablizing around 30-40 epochs and not increasing much.
+### 2.1.c
+```{r}
+
+create_model.n <- function(neurons) {
+  model <- keras_model_sequential() %>%
+    layer_dense(units = 8, activation="relu", input_shape=c(7)) %>%
+    layer_dense(units = neurons, activation="relu") %>%
+    layer_dense(units = 5, activation="softmax")
+  model %>% compile(loss = "categorical_crossentropy",
+          optimizer="adam",
+          metrics=c("accuracy"))
+  
+  model %>% fit(
+    data.matrix(x.train.df),
+    y.train.df.ohe,
+    epochs=100,
+    batch_size=32,
+    validation_split=0.20)
+  # print("@@@@@")
+  return (model)
+ 
+}
+
+```
+```{r}
+n=0
+
+for(n in 1:17){
+  # print(n)
+  model2 <-create_model.n(n)
+  pred.prob <- predict(model2, as.matrix(x.test.df))
+  pred.class <- apply(pred.prob, 1, function(x) which.max(x)-1)
+  confusion.matrix <- confusionMatrix(as.factor(pred.class), as.factor(y.test.df))
+  print(signif(confusion.matrix[["overall"]][["Accuracy"]], 3))
+
+}
+  
+
+```
+
+#### 2.1.c.i
+```{r}
+model.high <-create_model.n(11)
+
+```
+<p>Best model has 11 neurons in the hidden layer.
+ In this model, loss: 0.035, Accuracy: 0.985<p>
+
+#### 2.1.c.ii
+
+#### 2.1.c.iii
+<p> we can stop around 35-40 epochs to minimize over-fitting</p>
+
+
+### 2.1.d
+```{r}
+pred.prob <- predict(model.high, as.matrix(x.test.df))
+pred.class <- apply(pred.prob, 1, function(x) which.max(x)-1)
+confusion.matrix <- confusionMatrix(as.factor(pred.class), as.factor(y.test.df))
+confusion.matrix
+
+```
+#### 2.1.d.i
+
+<p> By Observing both (a) and (d), we can see that even with the increase in 11 hidden layers that accuracy has only increased by 0.0005. and PPV values of class 2 and 3 have been increased. </p>
+
+#### 2.1.d.ii
+
+<p> I would prefer model (a), because even with increase in hidden layers the increase in accuracy of the model is very small. So, Its best to push model (a) as it consumes less GPU with an accuracy of 0.0005 less than model (d).</p>

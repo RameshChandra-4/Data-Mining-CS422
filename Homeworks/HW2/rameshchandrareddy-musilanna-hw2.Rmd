@@ -1,0 +1,167 @@
+---
+title: "CS 422 HW2"
+author: "Ramesh Chandra Reddy Musilanna"
+output:
+  html_notebook:
+    toc: yes
+    toc_float: yes
+  html_document:
+    toc: yes
+    df_print: paged
+---
+
+## 2.    Programming Problem
+### 2.1
+```{r}
+library("ISLR")
+set.seed(1122)
+index <- sample(1:nrow(Auto), 0.95*dim(Auto)[1])
+train.df <- Auto[index,]
+test.df <- Auto[-index,]
+#index
+#train.df
+```
+
+### Part 2.1 - a
+```{r}
+linear_reg <- lm(mpg ~.-name,data = train.df)
+linear_reg
+```
+#### Part 2.1 - a - i
+<p>The attribute "name" is to identify a row uniquely which is already achieved by index of array.<p>
+
+#### Part 2.1 - a - ii
+```{r}
+lsummary <- summary(linear_reg)
+lsummary
+
+paste("R-sq value is ", signif(lsummary$r.squared, 2))
+paste("Adjusted R-sq value is ", signif(lsummary$adj.r.squared, 2))
+paste("RSE is ", signif(sqrt(sum(linear_reg$residuals**2)/(length(linear_reg$residuals)-(1+(length(linear_reg$coefficients)-1)))), 2))
+paste("RMSE is ", signif(sqrt(sum(linear_reg$residuals**2)/(length(linear_reg$residuals))), 2))
+
+
+
+```
+<p>Variance is described well in the model as R-squared value is 0.82 which is close to 1</p>
+
+
+#### Part 2.1 - a - iii
+```{r}
+res <- resid(linear_reg)
+# which =1 gives plot of Residuals vs Fitted values
+plot(linear_reg,which = 1)
+
+```
+
+#### Part 2.1 - a - iv
+```{r}
+library(ggplot2)
+hist_res<- qplot(linear_reg$residuals,geom = "histogram",bins = 10) +
+         labs(title = "Histogram of Residuals",x = "Residuals")
+plot(hist_res)
+```
+
+<p>The histogram is symmetric. The residuals are normally distributed.</p>
+
+### Part 2.1 - b
+#### Part 2.1 - b - i
+```{r}
+# By seeing the lowest pr-values, 'displacement', 'weight', and 'year' appears to be the 3 most significant predictor attributes.
+linear_reg_3p <-  lm(mpg ~ displacement + weight + year, data = Auto)
+#linear_reg_3p
+```
+#### Part 2.1 - b - ii
+```{r}
+lr_3p_summ <- summary(linear_reg_3p)
+lr_3p_summ
+
+paste("R-sq value is ", signif(lr_3p_summ$r.squared, 2))
+paste("RSE is ", signif(sqrt(sum(lr_3p_summ$residuals**2)/(length(lr_3p_summ$residuals)-(1+(length(lr_3p_summ$coefficients)-1)))), 2))
+paste("RMSE is ", signif(sqrt(sum(lr_3p_summ$residuals**2)/(length(lr_3p_summ$residuals))), 2))
+```
+<p>The model is good. Variance is described well in the model as R-squared value is 0.81 which is close to 1. The RSE and RMSE values are also quite close to 0, however RSE,RMSE are increased by 0.1 than previous.</p>
+
+#### Part 2.1 - b - iii
+```{r}
+plot(linear_reg_3p,which = 1)
+```
+
+#### Part 2.1 - b - iv
+```{r}
+hist_res_1<- qplot(linear_reg_3p$residuals,geom = "histogram",bins = 10) +
+         labs(title = "Histogram of Residuals",x = "Residuals")
+plot(hist_res_1)
+```
+<p>The histogram does appear to be bell-shaped with little skewed in right. However, the histogram show the residuals to be normally distributed.</p>
+
+#### Part 2.1 - b - v
+<p>Models (a) and (b) show similarities in performance with respect to variance. The histogram of residual show that. However, Even with 3 predictors from the original dataset in model (b) managed to get an accurate model.</p>
+
+### Part 2.1 - c
+```{r}
+test_3p.df = test.df[c('displacement', 'weight', 'year')]
+
+
+mpg_predicted <- predict(linear_reg_3p, newdata = test_3p.df)
+#mpg_predicted
+linear_reg_3p.df <- data.frame(mpg_predicted, test.df[c('mpg')])
+colnames(linear_reg_3p.df) <- c('Prediction', 'Response')
+linear_reg_3p.df
+```
+
+### Part 2.1 - d
+```{r}
+#Using Confidence Interval
+confidence_count.df <- predict(linear_reg_3p, test_3p.df, interval = "confidence", level = 0.95)
+confidence_count.df <- data.frame(linear_reg_3p.df, confidence_count.df)
+
+
+confidence_count.df <- subset(confidence_count.df, select = c(1,2,4,5))
+colnames(confidence_count.df) <- c("Prediction", "Response", "Lower", "Upper")
+
+#confidence_count.df
+
+counting_fun <- function(x,y,z) {
+  if ((x <= y) & (y <= z) ) {
+    return(1)
+  } else {
+    return(0)
+  }
+}
+Matches= mapply(counting_fun, confidence_count.df$Lower, confidence_count.df$Prediction, confidence_count.df$Upper)
+confidence_interval.df <- cbind(confidence_count.df,Matches)
+confidence_interval.df
+
+```
+```{r}
+
+paste("Total observations correctly predicted: ",nrow(confidence_interval.df[confidence_interval.df$Matches == 1, ]))
+```
+
+### Part 2.1 - e
+```{r}
+#Using Prediction Interval
+prediction_count.df <- predict(linear_reg_3p, test_3p.df, interval = "prediction", level = 0.95)
+prediction_count.df <- data.frame(linear_reg_3p.df, prediction_count.df)
+
+
+prediction_count.df <- subset(prediction_count.df, select = c(1,2,4,5))
+colnames(prediction_count.df) <- c("Prediction", "Response", "Lower", "Upper")
+
+#prediction_count.df
+#using Counting_fun from 2.1.d
+Matches= mapply(counting_fun, prediction_count.df$Lower, prediction_count.df$Prediction, prediction_count.df$Upper)
+prediction_interval.df <- cbind(prediction_count.df,Matches)
+prediction_interval.df
+```
+```{r}
+
+paste("Total observations correctly predicted: ",nrow(prediction_interval.df[prediction_interval.df$Matches == 1, ]))
+```
+### Part 2.1 - f
+#### Part 2.1 - f - i
+<p>Number of matches using Confidence interval and Prediction Interval on test data is equal.</p>
+
+#### Part 2.1 - f - ii
+<p>As prediction interval is wider than the confidence interval, if mpg parameter in confidence interval matches  then mpg parameter in prediction interval also matches</p>

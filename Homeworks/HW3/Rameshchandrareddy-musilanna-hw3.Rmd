@@ -1,0 +1,22 @@
+---
+title: "CS 422 HW3"
+author: "Ramesh Chandra Reddy Musilanna"
+output:
+  html_notebook:
+    toc: yes
+    toc_float: yes
+  html_document:
+    toc: yes
+    df_print: paged
+---
+
+## 1.1. Decision Tree on the Iris Dataset
+
+```{r}
+library("rpart")
+library("rpart.plot")
+iris.df = data.frame(iris)
+#iris.df
+model <- rpart(Species ~ Sepal.Length + Sepal.Width + Petal.Length, data = iris.df, method = "class")
+rpart.plot(model, extra=104, fallen.leaves=T, type=4, main="Iris Dataset Decision Tree")
+```
